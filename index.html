@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+<head>
+ <meta charset="UTF-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black">
+ <title>Weather App</title>
+ <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+ <link rel="apple-touch-icon" href="images/apple-touch-icon-iphone60x60.png">
+ <link rel="apple-touch-icon" sizes="60x60" href="images/apple-touchicon-ipad-76x76.png">
+ <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touchicon-iphone-retina-120x120.png">
+ <link rel="apple-touch-icon" sizes="144x144" href="images/apple-touchicon-ipad-retina-152x152.png">
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"/>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrapicons@1.11.3/font/bootstrap-icons.css">
+</head>
+
+<body>
+  <!-- Top row Div -->
+    <div class="container-fluid ">
+      <form class = "card col-12">
+        <div class = "card-body">
+          <h3> Input Coordinates or Leave Blank for Current Location </h3>
+          <!-- get user input for coordinates or leave blank -->
+          <input type="text" id="txtcoordinates" aria-label="coordinates input for latitude and longitude using comma seperated values or leave blank for current location" placeholder="Ex: 36.1628 , 85.5016 ">
+          <button type="button" id="btncoord" class="btn btn-primary mx-1">Submit</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Bottom Row with location on weather conditions -->
+    <div class="row g-0">
+      <!-- Left Column with location -->
+      <div class="col-4 d-flex">
+        <form class="card flex-fill d-flex flex-column" id="Location">
+          <div class="card-body flex-fill d-flex flex-column">
+            <div class="flex-fill align-items-center">
+                <!-- insert image -->
+                <img src="images/location.png" alt="Location Icon" style="max-width: 25%; max-height: 25%;" class="ms-2">
+                <h4>Location:</h4>  
+                <!-- Display location's city state and country -->
+                <h4 id = "txtCity" >City</h4>
+                <h4 id="txtState">State</h4>   
+                <h4 id="txtCountry">Country</h4>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right Column with weather conditions -->
+      <div class="col-8 d-flex">
+        <form class="card flex-fill d-flex flex-column" id="Weather">
+          <div class="card-body flex-fill">
+            <!-- make the text current conditions display as h1 on large screens and h4 on small to fit everything -->
+            <h1 class="d-none d-md-block">Current conditions</h1>
+            <h4 class="d-block d-md-none">Current conditions</h4>
+            
+            <!-- Top images with rain perc and wind mph -->
+            <div class="d-flex align-items-center">
+              <!-- insert images and scale to small percent to fit on all devices -->
+              <img src="images/Rain.png" alt="Rain Icon" style="max-width: 15%; max-height: 15%;" class="me-2">
+              <h1 class="me-1" id="txt_rain_percent">N/A</h1>
+              <img src="images/wind_speed.png" alt="Wind Icon" style="max-width: 25%; max-height: 25%;" class="me-1">
+              <h1 id="txt_wind_speed">N/A</h1>
+            </div>
+            <!-- divide section with line -->
+            <hr>
+            <!-- bottom images with temp and humidity -->
+            <div class="d-flex align-items-center">
+              <!-- insert images and scale to small percent to fit on all devices -->
+              <img src="images/temp.png" alt="Temperature Icon" style="max-width: 15%; max-height: 15%;" class="me-2">
+              <h1 class="me-1" id="txt_temperature">N/A</h1>
+              <img src="images/humidity.png" alt="Humidity Icon" style="max-width: 25%; max-height: 25%;" class="me-1">
+              <h1 id="txt_humidity">N/A</h1>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    // on click run fetch on APIs, find location, and weather
+    document.querySelector('#btncoord').addEventListener('click', function(){
+      //get value from the textbox and trim useless whitespace
+      const strCoord = document.querySelector('#txtcoordinates').value.trim()
+      //regex to check if the value is a proper comma sperated lat and lon (this is ai generated)
+      const regCoord = /^-?(?:(?:[0-8]?\d(?:\.\d+)?)|(?:90(?:\.0+)?))\s*,\s*-?(?:(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?|(?:180(?:\.0+)?))$/
+      //error msg if value is not a good string
+      let strError = "Enter proper coordinates"
+      //set default lat lon and api urls
+      let flat = 0
+      let flon = 0
+      let strurl_city = `https://nominatim.openstreetmap.org/reverse?lat=${flat}&lon=${flon}&format=json&addressdetails=1`
+      let strurl_weather = `https://api.open-meteo.com/v1/forecast?latitude=${flat}&longitude=${flon}&temperature_unit=fahrenheit&wind_speed_unit=mph&current=temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m`
+      //if good string or empty string continue
+      if (regCoord.test(strCoord) || strCoord === '') {
+        //if empty run geolocation
+        if (strCoord === '') {
+          //see if geolcation is supported in browser or error
+          if ("geolocation" in navigator) {
+            try {
+              //get users lat and lon from geo and call api functions
+              navigator.geolocation.getCurrentPosition(location => {
+              flat = location.coords.latitude
+              flon = location.coords.longitude
+              strurl_city = `https://nominatim.openstreetmap.org/reverse?lat=${flat}&lon=${flon}&format=json&addressdetails=1`
+              strurl_weather = `https://api.open-meteo.com/v1/forecast?latitude=${flat}&longitude=${flon}&temperature_unit=fahrenheit&wind_speed_unit=mph&current=temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m`
+              GetUserCity()
+              Weather()
+            })
+            } catch (error) {
+              //error in finding user location
+              console.log('Error fetching objData',error)
+              Swal.fire({
+                    icon:"error",
+                    title:"Can not Find Location",
+                })
+            }
+          }
+          else{
+            //error in broser support
+             console.error("Geolocation is not supported.");
+             Swal.fire({
+                    icon:"error",
+                    title:"Can not Find Location, Type it manually",
+                })
+          }
+        }
+        else{
+        // if string parse and set to float vals and run api function
+        const [strlat,strlon] = strCoord.split(',')
+         flat = parseFloat(strlat)
+         flon = parseFloat(strlon)
+         strurl_city = `https://nominatim.openstreetmap.org/reverse?lat=${flat}&lon=${flon}&format=json&addressdetails=1`
+         strurl_weather = `https://api.open-meteo.com/v1/forecast?latitude=${flat}&longitude=${flon}&temperature_unit=fahrenheit&wind_speed_unit=mph&current=temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m`
+         GetUserCity()
+         Weather()
+        }
+        //api function for geting user location using nominatim to get infromation from lat and lon
+        async function GetUserCity() {
+          try {
+            //get json vals
+            const objResponse = await fetch(strurl_city,{
+                method:'GET',
+                headers: {
+                    'Content-Type':'application/json'
+                },
+            })
+            //if response not ok return error
+            if(!objResponse.ok){
+                throw new Error(`HTTP Error Status:${objResponse.status}`)
+            }
+            //wait for data
+            const objData = await objResponse.json()
+            //give success msg
+            Swal.fire({
+                icon:"success",
+                title:"Found Location",
+                timer: 1500
+            })
+            //set vals for city state and country
+            document.querySelector('#txtCity').innerHTML = objData.address.city
+            document.querySelector('#txtState').innerHTML = objData.address.state
+            document.querySelector('#txtCountry').innerHTML = objData.address.country
+          }catch (objerror){
+            //if error catch and log it also error msg to user
+            console.log('Error fetching objData',objerror)
+            Swal.fire({
+                    icon:"error",
+                    title:"Can not Find Location",
+                })
+          }
+        }
+        //api function for getting weather using open-metro
+        async function Weather() {
+          try {
+            //get json data
+            const objResponse = await fetch(strurl_weather,{
+                method:'GET',
+                headers: {
+                    'Content-Type':'application/json'
+                },
+            })
+            //throw error if no response
+            if(!objResponse.ok){
+                throw new Error(`HTTP Error Status:${objResponse.status}`)
+            }
+            const objData = await objResponse.json()
+            //success msg when getting data
+            Swal.fire({
+                    icon:"success",
+                    title:"Found Weather",
+                    timer: 1500
+                })
+            //set vals for weather components 
+            document.querySelector('#txt_rain_percent').innerHTML = objData.current.precipitation_probability + " %"
+            document.querySelector('#txt_temperature').innerHTML = objData.current.temperature_2m + " °F"
+            document.querySelector('#txt_humidity').innerHTML = objData.current.relative_humidity_2m + " %"
+            document.querySelector('#txt_wind_speed').innerHTML = objData.current.wind_speed_10m + " mph"
+          } catch (objerror) {
+            //if error log it and display error to user
+            console.log('Error fetching objData',objerror)
+            Swal.fire({
+                    icon:"error",
+                    title:"Error in finding weather conditions",
+                })
+          }
+        }
+      }
+      else{
+        //if the string was not valid or empty then display error to user
+        Swal.fire({
+          icon:"error",
+          title: strError
+        })
+      }
+    })
+  </script>
+</body>
+</html>
